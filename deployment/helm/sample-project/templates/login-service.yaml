@@ -1,0 +1,22 @@
+{{- if .Values.images.login.replicaCount }}
+apiVersion: v1
+kind: Service
+metadata:
+    name: "{{ template "fullname" . }}-login"
+    labels:
+        app: {{ template "name" . }}
+        chart: {{ template "chart" . }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+        component: "login"
+spec:
+    ports:
+        -   protocol: TCP
+            port: 80
+            name: http
+            targetPort: http
+    selector:
+        app: {{ template "name" . }}
+        release: {{ .Release.Name }}
+        component: "login"
+{{- end }}

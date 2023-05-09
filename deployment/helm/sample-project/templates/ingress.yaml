@@ -1,0 +1,69 @@
+{{- if and .Values.paths .Values.tls }}
+{{- $root := .Values }}
+{{- range $path, $ingress := .Values.paths }}
+{{- if eq (tpl ($ingress.condition | default "true") $) "true" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: "{{ template "fullname" $ }}-ingress{{ $path | replace "/" "-slash-" | trimSuffix "-" }}"
+    annotations:
+        {{- if $ingress.annotations }}
+{{ toYaml $ingress.annotations | indent 8 }}
+        {{- end }}
+        {{- if $root.oldIngressApi }}
+        kubernetes.io/ingress.class: {{ $root.ingressClassName }}
+        {{- end }}
+spec:
+    {{- if not $root.oldIngressApi }}
+    ingressClassName: {{ $root.ingressClassName }}
+    {{- end }}
+    tls:
+        {{- range $root.tls }}
+        -   secretName: {{ .secretName | default .refName }}
+            hosts:
+                {{- range .hosts }}
+                -   {{ . }}
+                {{- end }}
+        {{- end }}
+    rules:
+        {{- range $root.tls }}
+        {{- range .hosts }}
+        {{- include "rules" (list $ $path $ingress) | nindent 8 }}
+            host: {{ . }}
+        {{- end }}
+        {{- end }}
+---
+{{- if $ingress.namespace }}
+kind: Service
+apiVersion: v1
+metadata:
+    name: "{{ $ingress.serviceName }}-from-{{ $ingress.namespace }}"
+spec:
+    type: ExternalName
+    externalName: "{{ $ingress.serviceName }}.{{ $ingress.namespace }}.svc.cluster.local"
+    ports:
+        -   port: {{ $ingress.servicePort | default 80 }}
+---
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "rules" -}}
+{{- $ := index . 0 }}
+{{- $path := index . 1 }}
+{{- $ingress := index . 2 }}
+-   http:
+        paths:
+            -   path: {{ $path }}
+                pathType: {{ $ingress.pathType | default "Prefix" }}
+                backend:
+                    service:
+                        {{- if $ingress.namespace }}
+                        name: "{{ $ingress.serviceName }}-from-{{ $ingress.namespace }}"
+                        {{- else }}
+                        name: "{{ tpl ($ingress.serviceName | default (include "fullname" $)) $ }}{{ $ingress.serviceNameSuffix | default "" }}"
+                        {{- end }}
+                        port:
+                            number: {{ $ingress.servicePort | default 80 }}
+{{- end }}

@@ -1,0 +1,7 @@
+logging.level.com.taktik: DEBUG
+
+sample:
+    mode: TEST
+
+jwt:
+    subject: sample-project-test

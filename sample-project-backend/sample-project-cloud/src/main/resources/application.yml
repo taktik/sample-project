@@ -1,0 +1,52 @@
+server:
+    port: 80
+    compression:
+        enabled: true
+    error:
+        include-message: always
+    shutdown: "graceful"
+    servlet:
+        context-path: "/backend"
+
+hazelcast:
+    cluster-name: sample-project-hz51-jackson-smile
+    networkConfig.join.multicastConfig.multicastGroup: 224.3.3.20
+
+jwt:
+    enable-default-service-security: true
+    subject: sample-project
+    algorithm: HS512
+    roles:
+        - ACTUATOR
+        - MICROSERVICE
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: "*"
+    endpoint:
+        health:
+            show-components: always
+            show-details: always
+            probes:
+                enabled: true
+            group:
+                readiness:
+                    include: readinessState, diskSpace, ping, hazelcast
+                liveness:
+                    include: livenessState, diskSpace, ping, hazelcast, sample
+
+spring:
+    lifecycle:
+        timeout-per-shutdown-phase: 180s
+
+logging.level.com.hazelcast.cp.CPSubsystem: ERROR
+
+sample:
+    mode: PROD
+
+springdoc:
+    swagger-ui:
+        persistAuthorization: true
+        url: /v3/api-docs.yaml

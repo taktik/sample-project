@@ -1,0 +1,4 @@
+name: sample-project
+version: 0.0.0
+apiVersion: v1
+description: sample-project

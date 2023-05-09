@@ -1,0 +1,52 @@
+buildscript {
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven {
+			credentials {
+				username repoUsername
+				password repoPassword
+			}
+			url = mavenRepository
+		}
+	}
+	dependencies {
+		classpath "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+		classpath "org.jetbrains.kotlin:kotlin-allopen:$kotlinVersion"
+		classpath 'com.taktik.gradle:gradle-plugin-git-version:2.0.4'
+		classpath 'com.taktik.gradle:gradle-plugin-docker-java:2.1.4'
+		classpath "com.taktik.gradle:gradle-plugin-maven-repository:1.0.2"
+		classpath 'com.taktik.gradle:gradle-plugin-helm-repository:0.2.21-99208035f3'
+		classpath 'com.taktik.gradle:gradle-plugin-kt-to-ts:1.2.6-g1912a54264'
+	}
+}
+
+apply plugin: 'git-version'
+version = gitVersion
+apply plugin: 'helm-repository'
+helmRepository.chartFolder = '../deployment/helm/'
+
+subprojects {
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven {
+			credentials {
+				username repoUsername
+				password repoPassword
+			}
+			url = mavenRepository
+		}
+	}
+
+	group = 'com.taktik.sample'
+	apply plugin: 'git-version'
+	version = gitVersion
+	apply plugin: 'kotlin'
+
+	dependencies {
+		implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+		implementation 'org.jetbrains.kotlin:kotlin-reflect'
+	}
+}

@@ -1,0 +1,50 @@
+steps:
+    -   name: 'gcr.io/cloud-builders/git'
+        entrypoint: 'bash'
+        args: [ '-c', 'git fetch --unshallow --tags && git checkout $BRANCH_NAME' ]
+
+    -   name: 'gcr.io/cloud-builders/git'
+        entrypoint: 'bash'
+        args: [ '-c', 'git_version(){ V="65053dbac87";set +x;set -e;local VERSION_FILE="git.version";if [ -r $$VERSION_FILE ]; then local VERSION_LINE;read -r VERSION_LINE <$${VERSION_FILE};if [ "$$VERSION_LINE" != "" ]; then echo "$$VERSION_LINE";return 0;fi;fi;local GIT_DESCRIBE; GIT_DESCRIBE=$$(git describe --tags --abbrev=10 --dirty --always --long);local GIT_BRANCH; GIT_BRANCH=$$(git symbolic-ref --short HEAD 2>/dev/null);[[ $$GIT_BRANCH == */* ]] && local GIT_BRANCH_PREFIX=$${GIT_BRANCH%%/*} || local GIT_BRANCH_PREFIX="";local GIT_BRANCH_AFTER_PREFIX=$${GIT_BRANCH#*/};local GIT_TAG_MATCH; GIT_TAG_MATCH=$$(git tag --list "$${GIT_BRANCH_AFTER_PREFIX}" --list "$${GIT_BRANCH_AFTER_PREFIX}.*");local GIT_HASH=$${GIT_DESCRIBE##*-g};local GIT_DESCRIBE_BEFORE_HASH=$${GIT_DESCRIBE%-g*};local GIT_DISTANCE=$${GIT_DESCRIBE_BEFORE_HASH##*-};local GIT_TAG=$${GIT_DESCRIBE_BEFORE_HASH%-*};local VERSION_MAJOR=0;local VERSION_MINOR=0;local VERSION_PATCH=$$GIT_DISTANCE;local VERSION_PRE_RELEASE_IDENTIFIERS=();local VERSION_BUILD_IDENTIFIERS=();if [[ $$GIT_TAG =~ ^0*([0-9]+)(\.0*([0-9]+))?(\.0*([0-9]+))? ]]; then VERSION_MAJOR=$${BASH_REMATCH[1]:-0};VERSION_MINOR=$${BASH_REMATCH[3]:-0};if [[ $${BASH_REMATCH[5]:-0} != "0" ]]; then VERSION_PATCH=$${BASH_REMATCH[5]}$$GIT_DISTANCE;else VERSION_PATCH=$$GIT_DISTANCE;fi;fi;if ! [[ "$$GIT_BRANCH" == "" || "$$GIT_BRANCH" == "master" || ("$$GIT_BRANCH_PREFIX" == "release" && "$$GIT_TAG_MATCH" != "") ]]; then [ "$$GIT_BRANCH_PREFIX" != "" ] && VERSION_PRE_RELEASE_IDENTIFIERS+=("$${GIT_BRANCH_PREFIX}");local BRANCH_INFO="";local BRANCH_INFO_DASH_CUT=2;local BRANCH_INFO_DASH_STR=$$GIT_BRANCH_AFTER_PREFIX;for ((i = 1; i <= BRANCH_INFO_DASH_CUT; i++)); do [ "$${BRANCH_INFO_DASH_STR%%-*}" != "" ] && { [ "$$BRANCH_INFO" != "" ] && BRANCH_INFO="$${BRANCH_INFO}-$${BRANCH_INFO_DASH_STR%%-*}" || BRANCH_INFO="$${BRANCH_INFO}$${BRANCH_INFO_DASH_STR%%-*}" ;};[[ $$BRANCH_INFO_DASH_STR == *-* ]] && BRANCH_INFO_DASH_STR="$${BRANCH_INFO_DASH_STR#*-}" || BRANCH_INFO_DASH_STR="";done;BRANCH_INFO="$${BRANCH_INFO:0:25}/";while [[ $$BRANCH_INFO ]]; do BRANCH_SEGMENT=$${BRANCH_INFO%%/*};VERSION_PRE_RELEASE_IDENTIFIERS+=("$${BRANCH_SEGMENT}");BRANCH_INFO=$${BRANCH_INFO#*/};done;fi;VERSION_PRE_RELEASE_IDENTIFIERS+=("g$$GIT_HASH");local SEMVER="$${VERSION_MAJOR}.$${VERSION_MINOR}.$${VERSION_PATCH}";for i in "$${!VERSION_PRE_RELEASE_IDENTIFIERS[@]}"; do [[ $$i == 0 ]] && SEMVER+="-";[[ $$i -gt 0 ]] && SEMVER+=".";local VERSION_PRE_RELEASE_IDENTIFIER=$${VERSION_PRE_RELEASE_IDENTIFIERS[$$i]};SEMVER+=$${VERSION_PRE_RELEASE_IDENTIFIER//[^a-zA-Z0-9-]/};done;for i in "$${!VERSION_BUILD_IDENTIFIERS[@]}"; do [[ $$i == 0 ]] && SEMVER+="+";[[ $$i -gt 0 ]] && SEMVER+=".";local VERSION_BUILD_IDENTIFIER=$${VERSION_BUILD_IDENTIFIERS[$$i]};SEMVER+=$${VERSION_BUILD_IDENTIFIER//[^a-zA-Z0-9-]/};done;echo "$$SEMVER";return 0;}; git_version | tee git.version' ]
+
+    -   id: 'base'
+        name: 'gcr.io/cloud-builders/docker'
+        entrypoint: 'bash'
+        args: [ '-c', 'echo $$REPO_PASSWORD | docker login docker.taktik.be --username=$$REPO_USERNAME --password-stdin' ]
+        secretEnv: [ 'REPO_USERNAME', 'REPO_PASSWORD' ]
+
+    -   id: 'backend'
+        waitFor: [ 'base' ]
+        name: 'eclipse-temurin:17.0.6_10-jdk-alpine'
+        entrypoint: 'sh'
+        dir: 'sample-project-backend'
+        args: [ '-c', 'apk --no-cache add bash git docker && cp ../git.version ./ ; ./gradlew -PrepoUsername=$$REPO_USERNAME -PrepoPassword=$$REPO_PASSWORD dockerize -PdockerPush && ./gradlew -PrepoUsername=$$REPO_USERNAME -PrepoPassword=$$REPO_PASSWORD :helmize :sample-project-common:publish' ]
+        secretEnv: [ 'REPO_USERNAME', 'REPO_PASSWORD' ]
+        env:
+            - 'ORG_GRADLE_PROJECT_mavenRepository=https://maven.taktik.be/content/groups/public'
+            - 'ORG_GRADLE_PROJECT_mavenReleasesRepository=https://maven.taktik.be/content/repositories/releases/'
+            - 'ORG_GRADLE_PROJECT_mavenSnapshotsRepository=https://maven.taktik.be/content/repositories/snapshots/'
+
+    -   id: 'frontend'
+        waitFor: [ 'base' ]
+        name: 'docker.taktik.be/docker-buildx:latest'
+        entrypoint: 'sh'
+        dir: 'sample-project-frontend'
+        args: [ '-c', 'docker buildx build --push -t docker.taktik.be/sample/sample-project-frontend:$(cat ../git.version) .' ]
+
+#    -   name: 'alpine/helm'
+#        entrypoint: 'sh'
+#        args: [ '-c', 'v=$(cat git.version) && helm package ./deployment/helm/sample-project --version $v --app-version $v -d . && apk --no-cache add curl && curl -F file=@./qi-${v}.tgz -u $$REPO_USERNAME:$$REPO_PASSWORD "https://helm.taktik.be/service/rest/v1/components?repository=helm"' ]
+#        secretEnv: [ 'REPO_USERNAME', 'REPO_PASSWORD' ]
+
+availableSecrets:
+    secretManager:
+        -   versionName: projects/taktik-dev/secrets/ci-repo-username/versions/1
+            env: 'REPO_USERNAME'
+        -   versionName: projects/taktik-dev/secrets/ci-repo-password/versions/1
+            env: 'REPO_PASSWORD'
+
+options:
+    machineType: 'E2_HIGHCPU_8'
+
+timeout: 900s

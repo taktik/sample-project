@@ -1,0 +1,51 @@
+{{- if .Values.images.login.replicaCount }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: "{{ template "fullname" . }}-login"
+    labels:
+        app: {{ template "name" . }}
+        chart: {{ template "chart" . }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+        component: "login"
+spec:
+    replicas: {{ .Values.images.login.replicaCount }}
+    selector:
+        matchLabels:
+            app: {{ template "name" . }}
+            release: {{ .Release.Name }}
+            component: "login"
+    template:
+        metadata:
+            labels:
+                app: {{ template "name" . }}
+                release: {{ .Release.Name }}
+                component: "login"
+        spec:
+            containers:
+                -   name: "{{ .Chart.Name }}-login"
+                    image: "{{ .Values.images.login.repository }}:{{ .Values.images.login.tag | default .Values.defaultTag | default .Chart.Version }}"
+                    imagePullPolicy: "{{ .Values.pullPolicy }}"
+                    ports:
+                        -   containerPort: 80
+                            name: http
+                    env:
+                      {{- range $key, $value := .Values.images.login.env }}
+                        -   name: {{ $key }}
+                            value: {{ $value | quote }}
+                      {{- end }}
+                    resources:
+                        requests:
+                            memory: {{ .Values.images.login.memoryRequest | quote }}
+                              {{- if .Values.images.login.cpuRequest }}
+                            cpu: {{ .Values.images.login.cpuRequest | quote }}
+                          {{- end }}
+                        limits:
+                            memory: {{ .Values.images.login.memoryLimit | default .Values.images.login.memoryRequest | quote }}
+                              {{- if .Values.images.login.cpuLimit }}
+                            cpu: {{ .Values.images.login.cpuLimit | quote }}
+                        {{- end }}
+            imagePullSecrets:
+                -   name: regsecret
+{{- end }}

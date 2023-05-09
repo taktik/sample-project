@@ -1,0 +1,43 @@
+apply plugin: 'docker-java'
+dockerJava.imageGroup = 'sample'
+apply plugin: 'helm-repository'
+apply plugin: 'kotlin-spring'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+dependencies {
+	implementation project(':sample-project-common')
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'commons-validator:commons-validator:1.7'
+	implementation "com.taktik.boot:spring-boot-starter-jackson:$startersVersion"
+	implementation "com.taktik.boot:spring-boot-starter-hazelcast:$startersVersion"
+	implementation "com.taktik.boot:spring-boot-starter-jwt:$startersVersion"
+
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
+	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+
+	implementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+	jvmArgs '-Djava.awt.headless=true', '--add-modules=java.se', '--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED', '--add-opens=java.base/java.lang=ALL-UNNAMED', '--add-opens=java.base/java.nio=ALL-UNNAMED', '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED', '--add-opens=java.management/sun.management=ALL-UNNAMED', '--add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED'
+	useJUnitPlatform() // for JUnit 5 support with Gradle (run tests upon build)
+}
+
+dockerJava {
+	baseImage = "eclipse-temurin:17.0.6_10-jdk-alpine"
+}
+
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
+
+compileKotlin {
+//	kotlinOptions.apiVersion = kotlinApi
+	kotlinOptions.jvmTarget = JavaVersion.VERSION_17
+	kotlinOptions.allWarningsAsErrors = true
+}
+compileTestKotlin {
+	kotlinOptions.jvmTarget = JavaVersion.VERSION_17
+}

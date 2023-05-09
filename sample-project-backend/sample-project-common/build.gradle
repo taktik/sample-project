@@ -1,0 +1,37 @@
+apply plugin: 'maven-repository'
+apply plugin: 'kt-to-ts'
+ktToTsConfigs.configs = [
+		new KtToTsConfig(
+				["com.taktik.sample.model"],
+				[],
+				"../../sample-project-frontend/src/model/",
+				true,
+				["./GenericModels"],
+				"",
+				[]
+		)
+]
+
+tasks.register('prettierModels') {
+	doFirst {
+		exec {
+			workingDir "../../sample-project-frontend"
+			commandLine 'npx', 'yarn', 'prettier:models'
+		}
+	}
+}
+generateTsModelFromKt.finalizedBy prettierModels
+
+dependencies {}
+
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_11
+
+compileKotlin {
+//	kotlinOptions.apiVersion = kotlinApi
+	kotlinOptions.jvmTarget = JavaVersion.VERSION_11
+	kotlinOptions.allWarningsAsErrors = true
+}
+compileTestKotlin {
+	kotlinOptions.jvmTarget = JavaVersion.VERSION_11
+}

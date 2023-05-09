@@ -1,0 +1,52 @@
+defaultJavaOpts: "-XX:MaxRAMPercentage=50"
+defaultTag: ""
+jwtSecret: ""
+pullPolicy: "IfNotPresent"
+ingressClassName: "haproxy"
+#tls:
+#    -   secretName: tls-example-com
+#        hosts:
+#            - one.example.com
+#            - two.example.com
+
+images:
+    backend:
+        repository: "docker.taktik.be/sample/sample-project-backend"
+        tag: ""
+        replicaCount: 1
+        javaOpts: "-XX:MaxRAMPercentage=50"
+        memoryRequest: "1Gi"
+        cpuRequest: 10m
+        cpuLimit: 2
+        debug: true
+        env: { }
+    frontend:
+        repository: "docker.taktik.be/sample/sample-project-frontend"
+        tag: ""
+        replicaCount: 1
+        memoryRequest: "32Mi"
+        memoryLimit: "64Mi"
+        cpuRequest: 10m
+        cpuLimit: 100m
+        env: { }
+    login:
+        repository: "docker.taktik.be/app.login"
+        tag: "1.0.233-g8127a065f6"
+        replicaCount: 1
+        memoryRequest: "32Mi"
+        memoryLimit: "64Mi"
+        cpuRequest: 5m
+        cpuLimit: 100m
+        env:
+            TARGET_NAME: "sample-project"
+            OZONEAPI_LOGIN: "/backend/login"
+
+paths:
+    /:
+        serviceNameSuffix: "-frontend"
+    /backend:
+        serviceNameSuffix: "-backend"
+    /login:
+        serviceNameSuffix: "-login"
+        annotations:
+            haproxy.org/path-rewrite: /login(/.*)? \1
