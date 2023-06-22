@@ -1,4 +1,4 @@
-FROM node:19.7-alpine3.17 as build
+FROM node:lts-hydrogen as build
 WORKDIR /app
 COPY . ./
 RUN yarn

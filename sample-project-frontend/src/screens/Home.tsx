@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
-import styled from 'styled-components'
-import { Example } from '../model'
 import Button from '@mui/material/Button'
-import { ExampleDialog } from '../dialogs/ExampleDialog'
+import { useState } from 'react'
+import styled from 'styled-components'
 import { v4 as uuidv4 } from 'uuid'
+import { ExampleDialog } from '../dialogs/ExampleDialog'
+import { Example } from '../model'
 
 const Container = styled.div`
   background-color: #b4d455;
@@ -20,22 +20,22 @@ export const Home = () => {
 	}
 
 	return (
-			<Container>
-				<h1>Sample project</h1>
-				<div className={'exampleButton'}>
-					<Button
-							variant={'contained'}
-							onClick={() => setOpen(true)}
-					>
-						Confirm
-					</Button>
-				</div>
-				<ExampleDialog
-						isOpen={open}
-						example={example}
-						onClose={() => setOpen(false)}
-						invalidateCache={invalidateCache}
-				/>
-			</Container>
+		<Container>
+			<h1>Sample project</h1>
+			<div className={'exampleButton'}>
+				<Button
+					variant={'contained'}
+					onClick={() => setOpen(true)}
+				>
+					Confirm
+				</Button>
+			</div>
+			<ExampleDialog
+				isOpen={open}
+				example={example}
+				onClose={() => setOpen(false)}
+				invalidateCache={invalidateCache}
+			/>
+		</Container>
 	)
 }
