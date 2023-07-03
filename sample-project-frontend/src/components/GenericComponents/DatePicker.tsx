@@ -65,7 +65,7 @@ export const DatePicker = ({
 					<DatePickerMui
 						disabled={disabled}
 						onChange={(newValue) => {
-							onChange(
+							onChange?.(
 								newValue && !isEmpty(newValue) ? (newValue as string) : undefined
 							)
 						}}
@@ -100,7 +100,7 @@ export const DatePicker = ({
 				{mode === 'date-time' && (
 					<DateTimePickerMui
 						onChange={(newValue) => {
-							onChange(
+							onChange?.(
 								newValue && !isEmpty(newValue) ? (newValue as string) : undefined
 							)
 						}}
@@ -138,7 +138,11 @@ export const DatePicker = ({
 						invalidMessage={invalidMessage ?? ''}
 						label={label ?? ''}
 						disabled={disabled ?? false}
-						onChange={onChange}
+						onChange={(newValue) => {
+							onChange?.(
+								newValue && !isEmpty(newValue) ? (newValue as string) : undefined
+							)
+						}}
 						value={value}
 					/>
 				)}
